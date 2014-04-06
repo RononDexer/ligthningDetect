@@ -6,17 +6,17 @@ function Lettre(tabDirections,tabDirectionsOiseau,lettreStr,type) {
     for(var i=0;i<tabDir.length;i++){
       tabD2=tabDirections[i];
       if(typeof type !== "undefined"){
-	if(type==="clock"){
-	  for(var i=0;i<tabD2.length;i++){
-		  tabD2[i]=Math.abs(tabD2[i]-12);
-		  tabD2[i]=(tabD2[i]+3)/12;
-	  }
-	} 
-	else if(type==="angle"){
-	  for(var i=0;i<tabD2.length;i++){
-		  tabD2[i]/=360;
-	  }
-	}
+        if(type==="clock"){
+          for(var i=0;i<tabD2.length;i++){
+              tabD2[i]=Math.abs(tabD2[i]-12);
+              tabD2[i]=(tabD2[i]+3)/12;
+          }
+        } 
+        else if(type==="angle"){
+          for(var i=0;i<tabD2.length;i++){
+              tabD2[i]/=360;
+          }
+        }
       }
     }
   }
