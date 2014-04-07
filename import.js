@@ -113,8 +113,8 @@ if (debug) {
 letters.forEach(function(letter, i) {
     letter.instVectors = letter.dots.map(function(dot, i, dots) {
         try {
-            var dx = dots[i + 1].x - dots[i - 1].x,
-                dy = dots[i + 1].y - dots[i - 1].y;
+            var dx = dots[i - 1].x - dots[i + 1].x,
+                dy = dots[i - 1].y - dots[i + 1].y;
             var angle = Math.atan2(dy, dx);// * 180 / Math.PI;
             return {
                 speed: Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2)),
@@ -127,6 +127,8 @@ letters.forEach(function(letter, i) {
     });
     var sortedSpeeds = letter.instVectors.map(function(e) {return e.speed;}).sort(function(a, b) {return a - b;});
     letter.minSpeed = sortedSpeeds.slice(parseInt(sortedSpeeds.length / 2), sortedSpeeds.length).average() / 2;
+    letter.minSpeed = sortedSpeeds.average() / 2;
+    //letter.minSpeed = sortedSpeeds[parseInt(sortedSpeeds.length / 4)];
     if (debug > 2) {
         var x = new java.lang.reflect.Array.newInstance(java.lang.Double.TYPE, letter.instVectors.length);
         var sp = new java.lang.reflect.Array.newInstance(java.lang.Double.TYPE, letter.instVectors.length);
@@ -165,7 +167,17 @@ letters.forEach(function(letter, i) {
         } else {//nouveau stop
             st.x /= count;
             st.y /= count;
-            letter.vectors.push({instAngle: letter.instVectors[index].angle});//FIXME certaines valeurs sont bizarres
+            var instAngle;
+            try {
+                instAngle = Math.atan2(
+                    letter.dots[index - 3].y - letter.dots[index + 1].y,
+                    letter.dots[index - 3].x - letter.dots[index + 1].x
+                );
+            } catch (err) {
+                instAngle = 0;
+            }
+            IJ.log(instAngle);
+            letter.vectors.push({instAngle: instAngle});//FIXME certaines valeurs sont bizarres
             count = 0;
             letter.stops.push({
                 x: letter.dots[index].x,
@@ -181,8 +193,8 @@ letters.forEach(function(letter, i) {
         var dx = 0,
             dy = 0;
         try {
-            dx = letter.stops[i + 1].x - letter.stops[i].x;
-            dy = letter.stops[i + 1].y - letter.stops[i].y;
+            dx = letter.stops[i].x - letter.stops[i + 1].x;
+            dy = letter.stops[i].y - letter.stops[i + 1].y;
         } catch (err) {}
         vector.speed = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
         vector.angle = Math.atan2(dy, dx);
@@ -212,14 +224,28 @@ if (debug) {
             var st = letter.stops[i];
             var dx = vector.speed * Math.cos(vector.angle),
                 dy = vector.speed * Math.sin(vector.angle);
-            ip.drawLine(st.x, st.y, st.x + dx, st.y + dy);
+            ip.drawLine(st.x, st.y, st.x - dx, st.y - dy);
             dx = vector.speed / 3 * Math.cos(vector.instAngle);
             dy = vector.speed / 3 * Math.sin(vector.instAngle);
-            ip.drawLine(st.x, st.y, st.x + dx, st.y + dy);
+            ip.drawLine(st.x, st.y, st.x - dx, st.y - dy);
         });
     });
     project.setProcessor(ip);
     project.show();
+}
+
+if (debug > 2) {
+    IJ.log("Structure d'une lettre :");
+    for (var key in letters[0]) {
+        if (typeof letters[0][key][0] === "object") {
+            IJ.log(" " + key + " : array of objects");
+            for (var key2 in letters[0][key][0]) {
+                IJ.log("     " + key2 + " : " + typeof letters[0][key][0][key2]);
+            }
+        } else {
+            IJ.log(" " + key + " : " + typeof letters[0][key]);
+        }
+    }
 }
 
 //fonction calculant les angles et prenant en compte les décélérations
