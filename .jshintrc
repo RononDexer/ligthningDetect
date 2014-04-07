@@ -14,7 +14,8 @@
     "globals": {
         "getArgument": false,
         "IJ": false,
-        "ResultsTable": false
+        "ResultsTable": false,
+        "Plot": false
     },
     "rhino": true,
     "devel": true,
