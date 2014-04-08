@@ -170,8 +170,8 @@ letters.forEach(function(letter, i) {
             var instAngle;
             try {
                 instAngle = Math.atan2(
-                    letter.dots[index - 3].y - letter.dots[index + 1].y,
-                    letter.dots[index - 3].x - letter.dots[index + 1].x
+                    st.y - letter.dots[stopIndices[i - 1] + 3].y,
+                    st.x - letter.dots[stopIndices[i - 1] + 3].x
                 );
             } catch (err) {
                 instAngle = 0;
