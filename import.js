@@ -40,6 +40,7 @@ while(SD > mean / 4) {
     SD = areas[areas.length-3];
 }
 
+//Détermination du temps minimal des lettres et entre les lettres
 var slices = table.getColumn(table.getColumnIndex("Slice"));
 var slicesTotal=slices[slices.length-1] - slices[slices.length-2];
 var resObscurite = parseInt((slicesTotal - slices.length - 4) / slicesTotal * 30);
@@ -177,7 +178,7 @@ letters.forEach(function(letter, i) {
                 instAngle = 0;
             }
             IJ.log(instAngle);
-            letter.vectors.push({instAngle: instAngle});//FIXME certaines valeurs sont bizarres
+            letter.vectors.push({instAngle: instAngle});
             count = 0;
             letter.stops.push({
                 x: letter.dots[index].x,
@@ -234,6 +235,7 @@ if (debug) {
     project.show();
 }
 
+//Juste pour rappel, pour afficher comment est stockée dans un object JS une lettre détectée
 if (debug > 2) {
     IJ.log("Structure d'une lettre :");
     for (var key in letters[0]) {
@@ -248,82 +250,66 @@ if (debug > 2) {
     }
 }
 
-//fonction calculant les angles et prenant en compte les décélérations
-var processCoords = function(aSubSlice) {
-    var xArray=xArrayAll.slice(aSubSlice.start,aSubSlice.end+1);
-    var yArray=yArrayAll.slice(aSubSlice.start,aSubSlice.end+1);
-    if (debug) {
-        IJ.log("Process coordinates from letter beginning at slice : " + aSubSlice.start);
-        IJ.log("Calculating speeds...");
-    }
-    var speeds = new Array(xArray.length - 2);
-    for (var i = 0; i < speeds.length; i++) {
-        speeds[i] = Math.sqrt(
-            Math.pow(xArray[i + 2] - xArray[i], 2) +
-            Math.pow(yArray[i + 2] - yArray[i], 2)
-        );
-    }
-    if (debug) {
-        IJ.log(speeds);
-        IJ.log("Finding all stops...");
-    }
-    //calcul de MIN_SPEED
-    var MIN_SPEED=speeds.average()/2;
-    if (debug) {IJ.log("Considerate stop if speed <"+MIN_SPEED);}
-    var indicesStop = [];
-    speeds.forEach(function(e, i) {
-        if (e < MIN_SPEED) {
-            indicesStop.push(i);
-        }
-    });
-    if (debug) {IJ.log(indicesStop);}
-    if (indicesStop.length < 2) {
-        throw "Not enough stops";
-    }
-    if (debug) {IJ.log("Grouping all stops...");}
-    var stops = [{
-        x: xArray[indicesStop[0] + 1],
-        y: yArray[indicesStop[0] + 1]
-    }];
-    var count = 1;
-    for (i = 1; i < indicesStop.length; i++) {
-        if (indicesStop[i - 1] === indicesStop[i] - 1) {
-            stops[stops.length - 1].x += xArray[indicesStop[i] + 1];
-            stops[stops.length - 1].y += yArray[indicesStop[i] + 1];
-            count++;
-        } else {
-            stops[stops.length - 1].x /= count;
-            stops[stops.length - 1].y /= count;
-            count = 1;
-            stops.push({
-                x: xArray[indicesStop[i] + 1],
-                y: yArray[indicesStop[i] + 1]
-            });
-        }
-    }
-    stops[stops.length - 1].x /= count;
-    stops[stops.length - 1].y /= count;
-    
-    if (stops.length < 2) {
-        throw "Not enough stops";
-    }
-    if (debug) {IJ.log("Calculating vectors...");}
-    var vectors = new Array(stops.length - 1);
-    for (i = 0; i < vectors.length; i++) {
-        var dx = stops[i + 1].x - stops[i].x;
-        var dy = stops[i + 1].y - stops[i].y;
-        vectors[i] = {
-            length: Math.sqrt(
-                Math.pow(dx, 2) +
-                Math.pow(dy, 2)
-            ),
-            angle: Math.atan2(dy, dx) * 180 / Math.PI
-        };
-    }
-    vectors.forEach(function(v) {
-        IJ.log("angle: " + v.angle + " degrees, length: " + v.length + " pixels");
-    });
-    return {
-        vectors: vectors
-    };
+//Définition d'un modèle
+var LetterTemplate = function(parameters) {
+    this.char = parameters.char;
+    this.vectors = parameters.vectors;//.length === stops.length - 1
 };
+//Définition de la méthode de calcul de score
+LetterTemplate.prototype.score = function(letter) {
+    var value = 0.5;
+    var difNbStops = Math.abs(letter.stops.length - 1 - this.vectors.length);
+    if (difNbStops > 1) {//trop de différence dans le nombre de point d'arrêt
+        return 0;
+    } else if (difNbStops === 1) {//Il y a plus ou moins un point d'arrêt, peut-être une erreur dans l'analyse
+        return 0.2;
+    } // même nombre de points d'arrêt, donc comparaison des vecteurs.
+    this.vectors.forEach(function(vecteur) {
+
+    });
+    return value;
+};
+
+//Création des modèles de lettre
+var templates = [
+    new LetterTemplate({char: "A", vectors: [
+        {instAngle: Math.atan2(3, 1), speed: 1, angle: Math.atan2(3, 1)},
+        {instAngle: Math.atan2(-3, 1), speed: 1, angle: Math.atan2(-3, 1)}
+    ]}),
+    new LetterTemplate({char: "A", vectors: [
+        {instAngle: Math.atan2(3, 1), speed: 1, angle: Math.atan2(3, 1)},
+        {instAngle: Math.atan2(-3, 1), speed: 1, angle: Math.atan2(-3, 1)},
+        {instAngle: Math.atan2(3, -1), speed: 0.5, angle: Math.atan2(1.5, -0.8)}
+    ]}),
+    new LetterTemplate({char: "B", vectors: [
+        {instAngle: Math.atan2(-3, 0), speed: 1, angle: Math.atan2(-3, 0)},
+        {instAngle: Math.atan2(0, 1), speed: 0.5, angle: Math.atan2(1.5, 0)},
+        {instAngle: Math.atan2(0, 1), speed: 0.5, angle: Math.atan2(1.5, 0)}
+    ]}),
+    new LetterTemplate({char: "L", vectors: [
+        {instAngle: Math.atan2(-3, 0), speed: 1, angle: Math.atan2(-3, 0)},
+        {instAngle: Math.atan2(0, 1), speed: 0.33, angle: Math.atan2(0, 1)}
+    ]}),
+    new LetterTemplate({char: "S", vectors: [
+        {instAngle: Math.atan2(-3, -1), speed: 1, angle: Math.atan2(0, -1)},
+    ]}),
+    new LetterTemplate({char: "T", vectors: [
+        {instAngle: Math.atan2(0, 1), speed: 1, angle: Math.atan2(0, 1)},
+        {instAngle: Math.atan2(-3, 0), speed: 3, angle: Math.atan2(-3, 0)}
+    ]}),
+    new LetterTemplate({char: "T", vectors: [
+        {instAngle: Math.atan2(0, 1), speed: 1, angle: Math.atan2(0, 1)},
+        {instAngle: Math.atan2(0, -1), speed: 0.5, angle: Math.atan2(0, -1)},
+        {instAngle: Math.atan2(-3, 0), speed: 3, angle: Math.atan2(-3, 0)}
+    ]}),
+    new LetterTemplate({char: "U", vectors: [
+        {instAngle: Math.atan2(-1, 0), speed: 1, angle: Math.atan2(0, 1)}
+    ]})
+];
+
+//Comparaison lettre à lettre avec les modèles et affiche du score
+letters.forEach(function(letter) {
+    IJ.log(templates.map(function(template) {
+        return template.score(letter);
+    }));
+});
